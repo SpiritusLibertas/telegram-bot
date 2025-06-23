@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const TOKEN = '7591593436:AAEgOBitSVUCsvIWw7Y1rMTRXpeKupcJVVg'; // Ð¢Ð²Ñ–Ð¹ Ñ‚Ð¾ÐºÐµÐ½
+const https = require('https');
+const TOKEN = '7591593436:AAEgOBitSVUCsvIWw7Y1rMTRXpeKupcJVVg'; // Òâ³é òîêåí
 const CHANNEL_URL = 'https://t.me/Rentlogin_click';
 
 const app = express();
@@ -18,8 +19,8 @@ app.post('/', (req, res) => {
 
   console.log(`Chat ID: ${chatId}, Text: ${userText}`);
 
-  if (!userText) {
-    sendMessage(chatId, 'ðŸŽ‰ *Ð’Ñ–Ñ‚Ð°Ñ”Ð¼Ð¾ Ð² Ð±Ð¾Ñ‚Ñ– LRconverter!*\n_ÐÐ°Ñ‚Ð¸ÑÐ½Ð¸ "ÐŸÑ€Ð¾Ð´Ð¾Ð²Ð¶Ð¸Ñ‚Ð¸", Ñ‰Ð¾Ð± Ð¿Ð¾Ñ‡Ð°Ñ‚Ð¸._', [['âœ… ÐŸÑ€Ð¾Ð´Ð¾Ð²Ð¶Ð¸Ñ‚Ð¸']]);
+  if (userText === '/start') {
+    sendMessage(chatId, '?? *Â³òàºìî â áîò³ LRconverter!*\n_Íàòèñíè "Ïðîäîâæèòè", ùîá ïî÷àòè._', [['? Ïðîäîâæèòè']]);
     res.json({ status: 'ok', message: 'Welcome sent' });
     return;
   }
@@ -35,10 +36,10 @@ function sendMessage(chatId, text, buttons) {
     parse_mode: 'Markdown',
     reply_markup: { keyboard: buttons, one_time_keyboard: true, resize_keyboard: true },
   };
-  require('https').request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
+  https.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
     res.on('data', () => {});
   }).end(JSON.stringify(payload));
 }
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
