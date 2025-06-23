@@ -1,0 +1,250 @@
+function doPost(e) {
+  Logger.log('doPost started, e: ' + JSON.stringify(e));
+  if (!e || !e.postData || !e.postData.contents) {
+    Logger.log('Invalid or missing postData: ' + (e ? JSON.stringify(e) : 'null'));
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Invalid or missing postData' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  try {
+    Logger.log('Parsing postData: ' + e.postData.contents);
+    const data = JSON.parse(e.postData.contents);
+    const msg = data.message || {};
+    const chatId = msg.chat ? msg.chat.id : null;
+    const userText = msg.text || '';
+    const messageId = msg.message_id || 0;
+    Logger.log('Parsed - Chat ID: ' + chatId + ', Text: ' + userText + ', Message ID: ' + messageId);
+    if (!chatId) {
+      Logger.log('Chat ID is null, skipping message send. Full data: ' + JSON.stringify(data));
+      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Chat ID is undefined' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+    Logger.log('Sheet accessed: ' + SHEET_NAME);
+    const props = PropertiesService.getScriptProperties();
+    Logger.log('Properties accessed');
+
+    // Зберігаємо ID повідомлень
+    let messageIds = JSON.parse(props.getProperty(`messageIds_${chatId}`) || '[]');
+    messageIds.push(messageId);
+    props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+
+    let step = parseInt(props.getProperty(chatId)) || 0;
+    let responses = JSON.parse(props.getProperty(`data_${chatId}`) || '{}');
+    Logger.log('Current step: ' + step + ', Responses: ' + JSON.stringify(responses));
+
+    // Перший вхід або скидання стану
+    if (step === 0 && !userText) {
+      Logger.log('First entry or no command, showing welcome message');
+      props.deleteProperty(chatId);
+      props.deleteProperty(`data_${chatId}`);
+      props.deleteProperty(`messageIds_${chatId}`);
+      const response = sendMessageWithButtons(chatId, 
+        '🎉 *Вітаємо в боті LRconverter!*\n' +
+        '👤 Цей бот допомагає мені зібрати інформацію від тих, з ким я співпрацюю.\n' +
+        '🔒 *Запевняю:* запитання безпечні та не витягують конфіденційних даних!\n' +
+        '📝 Твоя інформація потрібна лише для нашої спільної роботи.\n' +
+        '_Натисни "Продовжити", щоб почати._', 
+        [['✅ Продовжити']], 'Markdown');
+      if (response) {
+        const sentMessageId = JSON.parse(response.getContentText()).result.message_id;
+        messageIds = [sentMessageId];
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+      }
+      props.setProperty(chatId, '0');
+      return;
+    }
+
+    // Обробка крока 0 (вітальне повідомлення)
+    if (step === 0) {
+      if (userText === 'Продовжити') {
+        Logger.log('User pressed "Продовжити", moving to step 1');
+        props.setProperty(chatId, '1'); // Оновлюємо крок до 1
+        const response = sendMessage(chatId, '👤 *1️⃣/16: Як тебе звати?* _Введи ім’я та прізвище._', false, 'Markdown');
+        if (response) {
+          const sentMessageId = JSON.parse(response.getContentText()).result.message_id;
+          messageIds.push(sentMessageId);
+          props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        }
+        return; // Повертаємося, щоб уникнути повторного виклику
+      } else {
+        Logger.log('User did not press "Продовжити", repeating welcome message');
+        const response = sendMessageWithButtons(chatId, 
+          '🎉 *Вітаємо в боті LRconverter!*\n' +
+          '👤 Цей бот допомагає мені зібрати інформацію від тих, з ким я співпрацюю.\n' +
+          '🔒 *Запевняю:* запитання безпечні та не витягують конфіденційних даних!\n' +
+          '📝 Твоя інформація потрібна лише для нашої спільної роботи.\n' +
+          '_Натисни "Продовжити", щоб почати._', 
+          [['✅ Продовжити']], 'Markdown');
+        if (response) {
+          const sentMessageId = JSON.parse(response.getContentText()).result.message_id;
+          messageIds.push(sentMessageId);
+          props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        }
+        return;
+      }
+    }
+
+    switch (step) {
+      case 1: 
+        responses.name = userText; 
+        const response1 = sendMessage(chatId, '🎂 *2️⃣/16: Скільки тобі років?* _Введи число._', false, 'Markdown'); 
+        const sentMessageId1 = response1 ? JSON.parse(response1.getContentText()).result.message_id : null;
+        if (sentMessageId1) messageIds.push(sentMessageId1);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 2: 
+        responses.age = userText; 
+        const response2 = sendMessage(chatId, '🌍 *3️⃣/16: У якому місті / країні живеш?* _Наприклад, Київ, Україна._', false, 'Markdown'); 
+        const sentMessageId2 = response2 ? JSON.parse(response2.getContentText()).result.message_id : null;
+        if (sentMessageId2) messageIds.push(sentMessageId2);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 3: 
+        responses.city = userText; 
+        responses.telegram = `@${msg.from.username || 'немає'}`; 
+        const response3 = sendMessage(chatId, '💼 *4️⃣/16: У якій сфері працюєш?* _Наприклад, IT, маркетинг._', false, 'Markdown'); 
+        const sentMessageId3 = response3 ? JSON.parse(response3.getContentText()).result.message_id : null;
+        if (sentMessageId3) messageIds.push(sentMessageId3);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 4: 
+        responses.profession = userText; 
+        const response4 = sendMessageWithButtons(chatId, '📅 *5️⃣/16: Чи маєш акаунт LinkedIn старше за 1 рік?*', [['✅ Так'], ['❌ Ні']], 'Markdown'); 
+        const sentMessageId4 = response4 ? JSON.parse(response4.getContentText()).result.message_id : null;
+        if (sentMessageId4) messageIds.push(sentMessageId4);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 5: 
+        responses.ageOfAcc = userText; 
+        const response5 = sendMessageWithButtons(chatId, '📱 *6️⃣/16: Чи прив’язаний акаунт до номера телефону?*', [['✅ Так'], ['❌ Ні']], 'Markdown'); 
+        const sentMessageId5 = response5 ? JSON.parse(response5.getContentText()).result.message_id : null;
+        if (sentMessageId5) messageIds.push(sentMessageId5);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 6: 
+        responses.phoneLinked = userText; 
+        const response6 = sendMessageWithButtons(chatId, '🪪 *7️⃣/16: Чи акаунт містить реальні дані (ім’я, фото, досвід)?*', [['✅ Так'], ['❌ Ні']], 'Markdown'); 
+        const sentMessageId6 = response6 ? JSON.parse(response6.getContentText()).result.message_id : null;
+        if (sentMessageId6) messageIds.push(sentMessageId6);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 7: 
+        responses.realData = userText; 
+        const response7 = sendMessageWithButtons(chatId, '📷 *8️⃣/16: Чи готовий пройти селфі-верифікацію при потребі?*', [['✅ Так'], ['❌ Ні']], 'Markdown'); 
+        const sentMessageId7 = response7 ? JSON.parse(response7.getContentText()).result.message_id : null;
+        if (sentMessageId7) messageIds.push(sentMessageId7);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 8: 
+        responses.selfie = userText; 
+        const response8 = sendMessageWithButtons(chatId, '🛂 *9️⃣/16: Чи маєш документ для підтвердження особи (паспорт або водійське)?*', [['✅ Так'], ['❌ Ні']], 'Markdown'); 
+        const sentMessageId8 = response8 ? JSON.parse(response8.getContentText()).result.message_id : null;
+        if (sentMessageId8) messageIds.push(sentMessageId8);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 9: 
+        responses.doc = userText; 
+        const response9 = sendMessageWithButtons(chatId, '📡 *🔟/16: Чи акаунт активний?* _Навіть рідко._', [['✅ Так'], ['❌ Ні']], 'Markdown'); 
+        const sentMessageId9 = response9 ? JSON.parse(response9.getContentText()).result.message_id : null;
+        if (sentMessageId9) messageIds.push(sentMessageId9);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 10: 
+        responses.active = userText; 
+        const response10 = sendMessageWithButtons(chatId, '🚫 *1️⃣1️⃣/16: Чи були випадки блокування або підозри в LinkedIn?*', [['✅ Так'], ['❌ Ні']], 'Markdown'); 
+        const sentMessageId10 = response10 ? JSON.parse(response10.getContentText()).result.message_id : null;
+        if (sentMessageId10) messageIds.push(sentMessageId10);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 11: 
+        responses.blocked = userText; 
+        const response11 = sendMessageWithButtons(chatId, '⏰ *1️⃣2️⃣/16: На який термін готовий здати акаунт?*', [['📅 до 1 міс'], ['🕒 1–3 міс'], ['⏳ 3+ міс'], ['🔄 постійно']], 'Markdown'); 
+        const sentMessageId11 = response11 ? JSON.parse(response11.getContentText()).result.message_id : null;
+        if (sentMessageId11) messageIds.push(sentMessageId11);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 12: 
+        responses.duration = userText; 
+        const response12 = sendMessage(chatId, '⚡ *1️⃣3️⃣/16: Як швидко зможеш надати доступ до акаунта?* _Наприклад, зараз, завтра._', false, 'Markdown'); 
+        const sentMessageId12 = response12 ? JSON.parse(response12.getContentText()).result.message_id : null;
+        if (sentMessageId12) messageIds.push(sentMessageId12);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 13: 
+        responses.ready = userText; 
+        const response13 = sendMessageWithButtons(chatId, '🔗 *1️⃣4️⃣/16: Чи маєш ще акаунти, які можна здати?*', [['✅ Так'], ['❌ Ні']], 'Markdown'); 
+        const sentMessageId13 = response13 ? JSON.parse(response13.getContentText()).result.message_id : null;
+        if (sentMessageId13) messageIds.push(sentMessageId13);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 14: 
+        responses.otherAccounts = userText; 
+        const response14 = sendMessage(chatId, '💬 *1️⃣5️⃣/16: Додатковий коментар / питання?* _Можна пропустити._', false, 'Markdown'); 
+        const sentMessageId14 = response14 ? JSON.parse(response14.getContentText()).result.message_id : null;
+        if (sentMessageId14) messageIds.push(sentMessageId14);
+        props.setProperty(`messageIds_${chatId}`, JSON.stringify(messageIds));
+        break;
+      case 15:
+        responses.comment = userText;
+        responses.timestamp = new Date().toLocaleString();
+        Logger.log('Appending row to sheet');
+        sheet.appendRow([
+          responses.timestamp,
+          responses.name,
+          responses.age,
+          responses.city,
+          responses.telegram,
+          responses.profession,
+          responses.ageOfAcc,
+          responses.phoneLinked,
+          responses.realData,
+          responses.selfie,
+          responses.doc,
+          responses.active,
+          responses.blocked,
+          responses.duration,
+          responses.ready,
+          responses.otherAccounts,
+          responses.comment
+        ]);
+        Logger.log('Row appended');
+
+        // Видаляємо всі збережені повідомлення бота
+        messageIds.forEach(msgId => {
+          if (msgId > 0) {
+            try {
+              UrlFetchApp.fetch(`https://api.telegram.org/bot${TOKEN}/deleteMessage`, {
+                method: 'post',
+                contentType: 'application/json',
+                payload: JSON.stringify({ chat_id: chatId, message_id: msgId })
+              });
+              Logger.log('Deleted message ID: ' + msgId);
+            } catch (e) {
+              Logger.log('Failed to delete message ID ' + msgId + ': ' + e.toString());
+            }
+          }
+        });
+
+        // Повідомлення про підписку
+        const response15 = sendMessageWithButtons(chatId, 
+          '🎉 *Дякуємо за заповнення анкети!*\n' +
+          `📢 Щоб не пропустити важливі оновлення, підпишись на наш канал: [Підписатися](${CHANNEL_URL})\n` +
+          '_Натисни кнопку нижче!_', 
+          [['✅ Підписатися']], 'Markdown');
+        props.deleteProperty(chatId);
+        props.deleteProperty(`data_${chatId}`);
+        props.deleteProperty(`messageIds_${chatId}`);
+        Logger.log('Properties cleared');
+        return;
+    }
+    step++;
+    props.setProperty(chatId, step.toString());
+    props.setProperty(`data_${chatId}`, JSON.stringify(responses));
+    Logger.log('Step updated to: ' + step);
+  } catch (error) {
+    Logger.log('Error: ' + error.toString());
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
