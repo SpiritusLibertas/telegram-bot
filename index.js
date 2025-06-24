@@ -64,10 +64,11 @@ app.post('/', async (req, res) => {
       return res.json({ status: 'ok', message: 'Welcome sent' });
     }
 
-    if (state.step === 0 && userText === 'Продовжити') {
+    // Виправлено: перевіряємо повний текст кнопки з емодзі
+    if (state.step === 0 && (userText === '✅ Продовжити' || userText === 'Продовжити')) {
       console.log(`User clicked "Продовжити" on ${chatId}, moving to step 1`);
       state.step = 1;
-      sendMessage(chatId, '👤 *1️⃣/16: Як тебе звати?* _Введи ім’я та прізвище._', 'Markdown');
+      sendMessage(chatId, '👤 *1️⃣/16: Як тебе звати?* _Введи ім'я та прізвище._', 'Markdown');
       console.log(`Sent step 1 message to ${chatId}`);
       return res.json({ status: 'ok' });
     }
@@ -160,9 +161,19 @@ app.post('/', async (req, res) => {
       case 15:
         state.responses.agreement = userText;
         state.step = 16;
-        sendMessage(chatId, '✅ *1️⃣6️⃣/16: Дякую! Дані відправлено. Очікуй на зворотний зв’язок.*', 'Markdown');
-        console.log(`Moved to step 16 for ${chatId}`);
-        // Додай логіку збереження в Google Sheets тут, якщо потрібно
+        
+        // Додаємо збереження в Google Sheets
+        try {
+          await saveToGoogleSheets(state.responses, chatId);
+          sendMessage(chatId, '✅ *1️⃣6️⃣/16: Дякую! Дані успішно збережено. Очікуй на зворотний зв'язок.*', 'Markdown');
+        } catch (sheetError) {
+          console.error('Error saving to Google Sheets:', sheetError);
+          sendMessage(chatId, '✅ *1️⃣6️⃣/16: Дякую! Дані отримано, але виникла помилка при збереженні. Зв'яжемося з тобою найближчим часом.*', 'Markdown');
+        }
+        
+        console.log(`Completed survey for ${chatId}`);
+        // Очищаємо стан після завершення
+        delete chatStates[chatId];
         break;
     }
 
@@ -177,14 +188,56 @@ app.post('/', async (req, res) => {
   }
 });
 
+// Функція для збереження в Google Sheets
+async function saveToGoogleSheets(responses, chatId) {
+  try {
+    const values = [
+      [
+        new Date().toISOString(),
+        chatId,
+        responses.name || '',
+        responses.age || '',
+        responses.email || '',
+        responses.phone || '',
+        responses.location || '',
+        responses.profession || '',
+        responses.workHours || '',
+        responses.income || '',
+        responses.onlineExp || '',
+        responses.tools || '',
+        responses.strengths || '',
+        responses.teamExp || '',
+        responses.schedule || '',
+        responses.portfolio || '',
+        responses.agreement || ''
+      ]
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A:Q`,
+      valueInputOption: 'RAW',
+      requestBody: { values }
+    });
+
+    console.log(`Data saved to Google Sheets for chat ${chatId}`);
+  } catch (error) {
+    console.error('Google Sheets error:', error);
+    throw error;
+  }
+}
+
 function sendMessage(chatId, text, parseMode = 'Markdown') {
   console.log(`Sending message to ${chatId}: ${text}`);
   const url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;
   const payload = { chat_id: chatId, text, parse_mode: parseMode };
-  https.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
-    res.on('data', (data) => console.log(`Response from Telegram: ${data}`));
-    res.on('error', (err) => console.error(`Telegram error: ${err.message}`));
-  }).end(JSON.stringify(payload));
+  const req = https.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
+    let data = '';
+    res.on('data', (chunk) => data += chunk);
+    res.on('end', () => console.log(`Response from Telegram: ${data}`));
+  });
+  req.on('error', (err) => console.error(`Telegram error: ${err.message}`));
+  req.end(JSON.stringify(payload));
 }
 
 function sendMessageWithButtons(chatId, text, buttons, parseMode = 'Markdown') {
@@ -200,18 +253,23 @@ function sendMessageWithButtons(chatId, text, buttons, parseMode = 'Markdown') {
       resize_keyboard: true,
     },
   };
-  https.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
-    res.on('data', (data) => console.log(`Response from Telegram: ${data}`));
-    res.on('error', (err) => console.error(`Telegram error: ${err.message}`));
-  }).end(JSON.stringify(payload));
+  const req = https.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
+    let data = '';
+    res.on('data', (chunk) => data += chunk);
+    res.on('end', () => console.log(`Response from Telegram: ${data}`));
+  });
+  req.on('error', (err) => console.error(`Telegram error: ${err.message}`));
+  req.end(JSON.stringify(payload));
 }
 
 function sendDeleteMessage(chatId, messageId) {
   console.log(`Deleting message ${messageId} from ${chatId}`);
   const url = `https://api.telegram.org/bot${TOKEN}/deleteMessage`;
-  https.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
+  const req = https.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
     res.on('data', () => {});
-  }).end(JSON.stringify({ chat_id: chatId, message_id: messageId }));
+  });
+  req.on('error', (err) => console.error(`Delete message error: ${err.message}`));
+  req.end(JSON.stringify({ chat_id: chatId, message_id: messageId }));
 }
 
 const PORT = process.env.PORT || 10000;
