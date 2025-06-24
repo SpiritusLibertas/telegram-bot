@@ -11,8 +11,6 @@ const SHEET_ID = '1IK-Vx0KI-D0tx_4If34YGOmBgocm9FNwtwoTNPPJtUs';
 const app = express();
 app.use(bodyParser.json());
 
-const CLIENT_EMAIL = process.env.CLIENT_EMAIL;
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const CLIENT_EMAIL = process.env.CLIENT_EMAIL || '';
 const PRIVATE_KEY = process.env.PRIVATE_KEY || '';
 const auth = new google.auth.GoogleAuth({
