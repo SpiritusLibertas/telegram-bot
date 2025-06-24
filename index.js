@@ -3,8 +3,8 @@ const bodyParser = require('body-parser');
 const https = require('https');
 const { google } = require('googleapis');
 require('dotenv').config();
-const TOKEN = '7591593436:AAEgOBitSVUCsvIWw7Y1rMTRXpeKupcJVVg'; // Перевір токен!
-const SHEET_NAME = 'Лист1';
+const TOKEN = '7591593436:AAEgOBitSVUCsvIWw7Y1rMTRXpeKupcJVVg'; // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ!
+const SHEET_NAME = 'пїЅпїЅпїЅпїЅ1';
 const CHANNEL_URL = 'https://t.me/Rentlogin_click';
 const SHEET_ID = '1IK-Vx0KI-D0tx_4If34YGOmBgocm9FNwtwoTNPPJtUs';
 
@@ -13,6 +13,8 @@ app.use(bodyParser.json());
 
 const CLIENT_EMAIL = process.env.CLIENT_EMAIL;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const CLIENT_EMAIL = process.env.CLIENT_EMAIL || '';
+const PRIVATE_KEY = process.env.PRIVATE_KEY || '';
 const auth = new google.auth.GoogleAuth({
   credentials: { client_email: CLIENT_EMAIL, private_key: PRIVATE_KEY.replace(/\\n/g, '\n') },
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
@@ -48,31 +50,31 @@ app.post('/', async (req, res) => {
     const state = chatStates[chatId];
 
     console.log(`Checking step: ${state.step}, userText: "${userText}"`);
-    if (state.step === 0 && userText === '/start') { // Зміна умови на '/start'
+    if (state.step === 0 && userText === '/start') { // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ '/start'
       console.log(`Step 0 triggered for ${chatId} with /start`);
       state.step = 0;
       state.responses = {};
       state.messageIds = [];
       sendMessageWithButtons(chatId,
-        '?? *Вітаємо в боті LRconverter!*\n' +
-        '?? Цей бот допомагає мені зібрати інформацію від тих, з ким я співпрацюю.\n' +
-        '?? *Запевняю:* запитання безпечні та не витягують конфіденційних даних!\n' +
-        '?? Твоя інформація потрібна лише для нашої спільної роботи.\n' +
-        '_Натисни "Продовжити", щоб почати._',
-        [['? Продовжити']], 'Markdown');
+        '?? *ВіпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅ LRconverter!*\n' +
+        '?? пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅ, пїЅ пїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.\n' +
+        '?? *пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ:* пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ!\n' +
+        '?? пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.\n' +
+        '_пїЅпїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ._',
+        [['? пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ']], 'Markdown');
       console.log(`Sent welcome message to ${chatId}`);
       return res.json({ status: 'ok', message: 'Welcome sent' });
     }
 
-    if (state.step === 0 && userText === 'Продовжити') {
-      console.log(`User clicked "Продовжити" on ${chatId}, moving to step 1`);
+    if (state.step === 0 && userText === 'пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ') {
+      console.log(`User clicked "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ" on ${chatId}, moving to step 1`);
       state.step = 1;
-      sendMessage(chatId, '?? *1??/16: Як тебе звати?* _Введи ім’я та прізвище._', 'Markdown');
+      sendMessage(chatId, '?? *1??/16: пїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ?* _пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ._', 'Markdown');
       console.log(`Sent step 1 message to ${chatId}`);
       return res.json({ status: 'ok' });
     }
 
-    return res.json({ status: 'ok' }); // Тимчасове повернення для дебагу
+    return res.json({ status: 'ok' }); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
   } catch (error) {
     console.error('Error:', error.toString());
     return res.status(500).json({ status: 'error', message: error.toString() });
