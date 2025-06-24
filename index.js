@@ -2,219 +2,110 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const https = require('https');
 const { google } = require('googleapis');
-const TOKEN = '7591593436:AAEgOBitSVUCsvIWw7Y1rMTRXpeKupcJVVg'; // Òâ³é òîêåí
+require('dotenv').config();
+const TOKEN = '7591593436:AAEgOBitSVUCsvIWw7Y1rMTRXpeKupcJVVg'; // Ïåğåâ³ğ òîêåí!
 const SHEET_NAME = 'Ëèñò1';
 const CHANNEL_URL = 'https://t.me/Rentlogin_click';
-const SHEET_ID = '1IK-Vx0KI-D0tx_4If34YGOmBgocm9FNwtwoTNPPJtUs'; // Òâ³é SHEET_ID
+const SHEET_ID = '1IK-Vx0KI-D0tx_4If34YGOmBgocm9FNwtwoTNPPJtUs';
 
 const app = express();
 app.use(bodyParser.json());
 
-// Íàëàøòóâàííÿ Google Sheets API
+const CLIENT_EMAIL = process.env.CLIENT_EMAIL;
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const auth = new google.auth.GoogleAuth({
-  credentials: {
-    client_email: 'òâ³é_client_email', // Çàì³íè íà email ³ç JSON-êëş÷à
-    private_key: 'òâ³é_private_key'.replace(/\\n/g, '\n'), // Çàì³íè íà êëş÷ ³ç JSON
-  },
+  credentials: { client_email: CLIENT_EMAIL, private_key: PRIVATE_KEY.replace(/\\n/g, '\n') },
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 const sheets = google.sheets({ version: 'v4', auth });
 
-// Çáåğ³ãàííÿ ñòàíó â ïàì’ÿò³ (çàì³ñòü PropertiesService)
 let chatStates = {};
 
 app.post('/', async (req, res) => {
+  console.log('Received POST request:', JSON.stringify(req.body));
   try {
     const { message } = req.body;
     if (!message) {
-      return res.json({ status: 'error', message: 'Invalid or missing message' });
+      console.log('No message in request');
+      return res.status(400).json({ status: 'error', message: 'Invalid or missing message' });
     }
 
     const chatId = message.chat?.id;
     const userText = message.text || '';
     const messageId = message.message_id || 0;
 
-    console.log(`Chat ID: ${chatId}, Text: ${userText}, Message ID: ${messageId}`);
+    console.log(`Processing - Chat ID: ${chatId}, Text: ${userText}, Message ID: ${messageId}`);
 
     if (!chatId) {
-      return res.json({ status: 'error', message: 'Chat ID is undefined' });
+      console.log('Chat ID is undefined');
+      return res.status(400).json({ status: 'error', message: 'Chat ID is undefined' });
     }
 
     if (!chatStates[chatId]) {
+      console.log(`Initializing state for Chat ID: ${chatId}`);
       chatStates[chatId] = { step: 0, responses: {}, messageIds: [] };
     }
     const state = chatStates[chatId];
 
-    // Ïåğøèé âõ³ä àáî ñêèäàííÿ ñòàíó
-    if (state.step === 0 && !userText) {
+    console.log(`Checking step: ${state.step}, userText: "${userText}"`);
+    if (state.step === 0 && userText === '/start') { // Çì³íà óìîâè íà '/start'
+      console.log(`Step 0 triggered for ${chatId} with /start`);
       state.step = 0;
       state.responses = {};
       state.messageIds = [];
-      sendMessageWithButtons(chatId, 
+      sendMessageWithButtons(chatId,
         '?? *Â³òàºìî â áîò³ LRconverter!*\n' +
         '?? Öåé áîò äîïîìàãàº ìåí³ ç³áğàòè ³íôîğìàö³ş â³ä òèõ, ç êèì ÿ ñï³âïğàöşş.\n' +
         '?? *Çàïåâíÿş:* çàïèòàííÿ áåçïå÷í³ òà íå âèòÿãóşòü êîíô³äåíö³éíèõ äàíèõ!\n' +
         '?? Òâîÿ ³íôîğìàö³ÿ ïîòğ³áíà ëèøå äëÿ íàøî¿ ñï³ëüíî¿ ğîáîòè.\n' +
-        '_Íàòèñíè "Ïğîäîâæèòè", ùîá ïî÷àòè._', 
+        '_Íàòèñíè "Ïğîäîâæèòè", ùîá ïî÷àòè._',
         [['? Ïğîäîâæèòè']], 'Markdown');
+      console.log(`Sent welcome message to ${chatId}`);
       return res.json({ status: 'ok', message: 'Welcome sent' });
     }
 
-    // Îáğîáêà êğîêà 0 (â³òàëüíå ïîâ³äîìëåííÿ)
     if (state.step === 0 && userText === 'Ïğîäîâæèòè') {
+      console.log(`User clicked "Ïğîäîâæèòè" on ${chatId}, moving to step 1`);
       state.step = 1;
       sendMessage(chatId, '?? *1??/16: ßê òåáå çâàòè?* _Ââåäè ³ì’ÿ òà ïğ³çâèùå._', 'Markdown');
+      console.log(`Sent step 1 message to ${chatId}`);
       return res.json({ status: 'ok' });
     }
 
-    // Ëîã³êà äëÿ ³íøèõ êğîê³â
-    switch (state.step) {
-      case 1:
-        state.responses.name = userText;
-        state.step = 2;
-        sendMessage(chatId, '?? *2??/16: Ñê³ëüêè òîá³ ğîê³â?* _Ââåäè ÷èñëî._', 'Markdown');
-        break;
-      case 2:
-        state.responses.age = userText;
-        state.step = 3;
-        sendMessage(chatId, '?? *3??/16: Ó ÿêîìó ì³ñò³ / êğà¿í³ æèâåø?* _Íàïğèêëàä, Êè¿â, Óêğà¿íà._', 'Markdown');
-        break;
-      case 3:
-        state.responses.city = userText;
-        state.responses.telegram = `@${message.from?.username || 'íåìàº'}`;
-        state.step = 4;
-        sendMessage(chatId, '?? *4??/16: Ó ÿê³é ñôåğ³ ïğàöşºø?* _Íàïğèêëàä, IT, ìàğêåòèíã._', 'Markdown');
-        break;
-      case 4:
-        state.responses.profession = userText;
-        state.step = 5;
-        sendMessageWithButtons(chatId, '?? *5??/16: ×è ìàºø àêàóíò LinkedIn ñòàğøå çà 1 ğ³ê?*', [['? Òàê'], ['? Í³']], 'Markdown');
-        break;
-      case 5:
-        state.responses.ageOfAcc = userText;
-        state.step = 6;
-        sendMessageWithButtons(chatId, '?? *6??/16: ×è ïğèâ’ÿçàíèé àêàóíò äî íîìåğà òåëåôîíó?*', [['? Òàê'], ['? Í³']], 'Markdown');
-        break;
-      case 6:
-        state.responses.phoneLinked = userText;
-        state.step = 7;
-        sendMessageWithButtons(chatId, '?? *7??/16: ×è àêàóíò ì³ñòèòü ğåàëüí³ äàí³ (³ì’ÿ, ôîòî, äîñâ³ä)?*', [['? Òàê'], ['? Í³']], 'Markdown');
-        break;
-      case 7:
-        state.responses.realData = userText;
-        state.step = 8;
-        sendMessageWithButtons(chatId, '?? *8??/16: ×è ãîòîâèé ïğîéòè ñåëô³-âåğèô³êàö³ş ïğè ïîòğåá³?*', [['? Òàê'], ['? Í³']], 'Markdown');
-        break;
-      case 8:
-        state.responses.selfie = userText;
-        state.step = 9;
-        sendMessageWithButtons(chatId, '?? *9??/16: ×è ìàºø äîêóìåíò äëÿ ï³äòâåğäæåííÿ îñîáè (ïàñïîğò àáî âîä³éñüêå)?*', [['? Òàê'], ['? Í³']], 'Markdown');
-        break;
-      case 9:
-        state.responses.doc = userText;
-        state.step = 10;
-        sendMessageWithButtons(chatId, '?? *??/16: ×è àêàóíò àêòèâíèé?* _Íàâ³òü ğ³äêî._', [['? Òàê'], ['? Í³']], 'Markdown');
-        break;
-      case 10:
-        state.responses.active = userText;
-        state.step = 11;
-        sendMessageWithButtons(chatId, '?? *1??1??/16: ×è áóëè âèïàäêè áëîêóâàííÿ àáî ï³äîçğè â LinkedIn?*', [['? Òàê'], ['? Í³']], 'Markdown');
-        break;
-      case 11:
-        state.responses.blocked = userText;
-        state.step = 12;
-        sendMessageWithButtons(chatId, '? *1??2??/16: Íà ÿêèé òåğì³í ãîòîâèé çäàòè àêàóíò?*', [['?? äî 1 ì³ñ'], ['?? 1–3 ì³ñ'], ['? 3+ ì³ñ'], ['?? ïîñò³éíî']], 'Markdown');
-        break;
-      case 12:
-        state.responses.duration = userText;
-        state.step = 13;
-        sendMessage(chatId, '? *1??3??/16: ßê øâèäêî çìîæåø íàäàòè äîñòóï äî àêàóíòà?* _Íàïğèêëàä, çàğàç, çàâòğà._', 'Markdown');
-        break;
-      case 13:
-        state.responses.ready = userText;
-        state.step = 14;
-        sendMessageWithButtons(chatId, '?? *1??4??/16: ×è ìàºø ùå àêàóíòè, ÿê³ ìîæíà çäàòè?*', [['? Òàê'], ['? Í³']], 'Markdown');
-        break;
-      case 14:
-        state.responses.otherAccounts = userText;
-        state.step = 15;
-        sendMessage(chatId, '?? *1??5??/16: Äîäàòêîâèé êîìåíòàğ / ïèòàííÿ?* _Ìîæíà ïğîïóñòèòè._', 'Markdown');
-        break;
-      case 15:
-        state.responses.comment = userText;
-        state.responses.timestamp = new Date().toLocaleString();
-        await sheets.spreadsheets.values.append({
-          spreadsheetId: SHEET_ID,
-          range: `${SHEET_NAME}!A:Z`,
-          valueInputOption: 'RAW',
-          resource: { values: [[
-            state.responses.timestamp,
-            state.responses.name,
-            state.responses.age,
-            state.responses.city,
-            state.responses.telegram,
-            state.responses.profession,
-            state.responses.ageOfAcc,
-            state.responses.phoneLinked,
-            state.responses.realData,
-            state.responses.selfie,
-            state.responses.doc,
-            state.responses.active,
-            state.responses.blocked,
-            state.responses.duration,
-            state.responses.ready,
-            state.responses.otherAccounts,
-            state.responses.comment
-          ]] },
-        });
-        state.messageIds.forEach(msgId => sendDeleteMessage(chatId, msgId));
-        sendMessageWithButtons(chatId,
-          '?? *Äÿêóºìî çà çàïîâíåííÿ àíêåòè!*\n' +
-          `?? Ùîá íå ïğîïóñòèòè âàæëèâ³ îíîâëåííÿ, ï³äïèøèñü íà íàø êàíàë: [Ï³äïèñàòèñÿ](${CHANNEL_URL})\n` +
-          '_Íàòèñíè êíîïêó íèæ÷å!_',
-          [['? Ï³äïèñàòèñÿ']], 'Markdown');
-        delete chatStates[chatId];
-        break;
-    }
-
-    if (state.step > 0 && state.step < 15) {
-      state.step++;
-      if (messageId > 0) state.messageIds.push(messageId);
-    }
-
-    return res.json({ status: 'ok' });
+    return res.json({ status: 'ok' }); // Òèì÷àñîâå ïîâåğíåííÿ äëÿ äåáàãó
   } catch (error) {
-    console.error('Error: ' + error.toString());
-    return res.json({ status: 'error', message: error.toString() });
+    console.error('Error:', error.toString());
+    return res.status(500).json({ status: 'error', message: error.toString() });
   }
 });
 
 function sendMessage(chatId, text, parseMode = 'Markdown') {
+  console.log(`Sending message to ${chatId}: ${text}`);
   const url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;
-  const payload = {
-    chat_id: chatId,
-    text: text,
-    parse_mode: parseMode,
-  };
+  const payload = { chat_id: chatId, text, parse_mode: parseMode };
   https.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
-    res.on('data', () => {});
+    res.on('data', (data) => console.log(`Response from Telegram: ${data}`));
+    res.on('error', (err) => console.error(`Telegram error: ${err.message}`));
   }).end(JSON.stringify(payload));
 }
 
 function sendMessageWithButtons(chatId, text, buttons, parseMode = 'Markdown') {
+  console.log(`Sending message with buttons to ${chatId}: ${text}`);
   const url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;
   const payload = {
     chat_id: chatId,
-    text: text,
+    text,
     parse_mode: parseMode,
     reply_markup: { keyboard: [buttons], one_time_keyboard: true, resize_keyboard: true },
   };
   https.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
-    res.on('data', () => {});
+    res.on('data', (data) => console.log(`Response from Telegram: ${data}`));
+    res.on('error', (err) => console.error(`Telegram error: ${err.message}`));
   }).end(JSON.stringify(payload));
 }
 
 function sendDeleteMessage(chatId, messageId) {
+  console.log(`Deleting message ${messageId} from ${chatId}`);
   const url = `https://api.telegram.org/bot${TOKEN}/deleteMessage`;
   https.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
     res.on('data', () => {});
