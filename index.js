@@ -112,49 +112,49 @@ app.post('/', async (req, res) => {
       case 4:
         state.responses.field = userText;
         state.step = 5;
-        sendMessageWithButtons(chatId, '🔗 5️⃣/16: Чи маєш акаунт LinkedIn старше за 1 рік?', [['Так'], ['Ні']], 'Markdown');
+        sendMessageWithButtons(chatId, '🔗 5️⃣/16: Чи маєш акаунт LinkedIn старше за 1 рік?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 5 for ${chatId}`);
         break;
         
       case 5:
         state.responses.linkedinAge = userText;
         state.step = 6;
-        sendMessageWithButtons(chatId, '📱 6️⃣/16: Чи прив’язаний акаунт до номера телефону?', [['Так'], ['Ні']], 'Markdown');
+        sendMessageWithButtons(chatId, '📱 6️⃣/16: Чи прив’язаний акаунт до номера телефону?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 6 for ${chatId}`);
         break;
         
       case 6:
         state.responses.phoneLinked = userText;
         state.step = 7;
-        sendMessageWithButtons(chatId, '🧑‍💼 7️⃣/16: Чи акаунт містить реальні дані (ім’я, фото, досвід)?', [['Так'], ['Ні']], 'Markdown');
+        sendMessageWithButtons(chatId, '🧑‍💼 7️⃣/16: Чи акаунт містить реальні дані (ім’я, фото, досвід)?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 7 for ${chatId}`);
         break;
         
       case 7:
         state.responses.realData = userText;
         state.step = 8;
-        sendMessageWithButtons(chatId, '📸 8️⃣/16: Чи готовий пройти селфі-верифікацію при потребі?', [['Так'], ['Ні']], 'Markdown');
+        sendMessageWithButtons(chatId, '📸 8️⃣/16: Чи готовий пройти селфі-верифікацію при потребі?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 8 for ${chatId}`);
         break;
         
       case 8:
         state.responses.selfieVerify = userText;
         state.step = 9;
-        sendMessageWithButtons(chatId, '🪪 9️⃣/16: Чи маєш документ для підтвердження особи (паспорт або водійське)?', [['Так'], ['Ні']], 'Markdown');
+        sendMessageWithButtons(chatId, '🪪 9️⃣/16: Чи маєш документ для підтвердження особи (паспорт або водійське)?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 9 for ${chatId}`);
         break;
         
       case 9:
         state.responses.idDoc = userText;
         state.step = 10;
-        sendMessageWithButtons(chatId, '⏳ 1️⃣0️⃣/16: Чи акаунт активний? Навіть рідко.', [['Так'], ['Ні']], 'Markdown');
+        sendMessageWithButtons(chatId, '⏳ 1️⃣0️⃣/16: Чи акаунт активний? Навіть рідко.', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 10 for ${chatId}`);
         break;
         
       case 10:
         state.responses.active = userText;
         state.step = 11;
-        sendMessageWithButtons(chatId, '⚠️ 1️⃣1️⃣/16: Чи були випадки блокування або підозри в LinkedIn?', [['Так'], ['Ні']], 'Markdown');
+        sendMessageWithButtons(chatId, '⚠️ 1️⃣1️⃣/16: Чи були випадки блокування або підозри в LinkedIn?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 11 for ${chatId}`);
         break;
         
@@ -175,7 +175,7 @@ app.post('/', async (req, res) => {
       case 13:
         state.responses.accessSpeed = userText;
         state.step = 14;
-        sendMessageWithButtons(chatId, '➕ 1️⃣4️⃣/16: Чи маєш ще акаунти, які можна здати?', [['Так'], ['Ні']], 'Markdown');
+        sendMessageWithButtons(chatId, '➕ 1️⃣4️⃣/16: Чи маєш ще акаунти, які можна здати?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 14 for ${chatId}`);
         break;
         
@@ -196,7 +196,7 @@ app.post('/', async (req, res) => {
           // Видалення всіх попередніх повідомлень
           state.messageIds.forEach(msgId => sendDeleteMessage(chatId, msgId));
           // Надсилання посилання на канал
-          sendMessage(chatId, `✅ 1️⃣6️⃣/16: Дякую! Дані успішно збережено. Приєднуйся до каналу: ${CHANNEL_URL}`, 'Markdown');
+          sendMessage(chatId, `✅ 1️⃣6️⃣/16: Дякую! Дані успішно збережено. Приєднуйся до каналу: [тут](${CHANNEL_URL})`, 'Markdown');
         } catch (sheetError) {
           console.error('Error saving to Google Sheets:', sheetError);
           sendMessage(chatId, '✅ 1️⃣6️⃣/16: Дякую! Дані отримано, але виникла помилка при збереженні. Звяжемося з тобою найближчим часом.', 'Markdown');
