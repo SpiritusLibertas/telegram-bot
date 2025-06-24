@@ -90,7 +90,7 @@ app.post('/', async (req, res) => {
     if (state.step === 0 && userText === '✅ Продовжити') {
       console.log(`User clicked "Продовжити" on ${chatId}, moving to step 1`);
       state.step = 1;
-      sendMessage(chatId, '👤 1️⃣/16: Як тебе звати? Введи ім'я та прізвище.', 'Markdown');
+      sendMessage(chatId, '👤 1️⃣/16: Як тебе звати? Введи ім\'я та прізвище.', 'Markdown');
       console.log(`Sent step 1 message to ${chatId}`);
       return res.json({ status: 'ok' });
     }
@@ -133,14 +133,14 @@ app.post('/', async (req, res) => {
       case 5:
         state.responses.accountAge = userText;
         state.step = 6;
-        sendMessageWithButtons(chatId, '📱 6️⃣/16: Чи прив'язаний акаунт до номера телефону?', [['✅ Так'], ['❌ Ні']], 'Markdown');
+        sendMessageWithButtons(chatId, '📱 6️⃣/16: Чи прив\'язаний акаунт до номера телефону?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 6 for ${chatId}`);
         break;
         
       case 6:
         state.responses.phoneLinked = userText;
         state.step = 7;
-        sendMessageWithButtons(chatId, '🧑‍💼 7️⃣/16: Чи акаунт містить реальні дані (ім'я, фото, досвід)?', [['✅ Так'], ['❌ Ні']], 'Markdown');
+        sendMessageWithButtons(chatId, '🧑‍💼 7️⃣/16: Чи акаунт містить реальні дані (ім\'я, фото, досвід)?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 7 for ${chatId}`);
         break;
         
