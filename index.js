@@ -4,7 +4,7 @@ const https = require('https');
 const { google } = require('googleapis');
 require('dotenv').config();
 const TOKEN = '7591593436:AAEgOBitSVUCsvIWw7Y1rMTRXpeKupcJVVg';
-const SHEET_NAME = 'Лист1';
+const SHEET_NAME = 'Р›РёСЃС‚1';
 const CHANNEL_URL = 'https://t.me/Rentlogin_click';
 const SHEET_ID = '1IK-Vx0KI-D0tx_4If34YGOmBgocm9FNwtwoTNPPJtUs';
 
@@ -54,20 +54,20 @@ app.post('/', async (req, res) => {
       state.responses = {};
       state.messageIds = [];
       sendMessageWithButtons(chatId,
-        '?? *Вітаємо в боті LRconverter!*\n' +
-        '?? Цей бот допомагає мені зібрати інформацію від тих, з ким я співпрацюю.\n' +
-        '?? *Запевняю:* запитання безпечні та не витягують конфіденційних даних!\n' +
-        '?? Твоя інформація потрібна лише для нашої спільної роботи.\n' +
-        '_Натисни "Продовжити", щоб почати._',
-        [['? Продовжити']], 'Markdown');
+        'рџЋ‰ *Р’С–С‚Р°С”РјРѕ РІ Р±РѕС‚С– LRconverter!*\n' +
+        'рџ‘¤ Р¦РµР№ Р±РѕС‚ РґРѕРїРѕРјР°РіР°С” РјРµРЅС– Р·С–Р±СЂР°С‚Рё С–РЅС„РѕСЂРјР°С†С–СЋ РІС–Рґ С‚РёС…, Р· РєРёРј СЏ СЃРїС–РІРїСЂР°С†СЋСЋ.\n' +
+        'рџ”’ *Р—Р°РїРµРІРЅСЏСЋ:* Р·Р°РїРёС‚Р°РЅРЅСЏ Р±РµР·РїРµС‡РЅС– С‚Р° РЅРµ РІРёС‚СЏРіСѓСЋС‚СЊ РєРѕРЅС„С–РґРµРЅС†С–Р№РЅРёС… РґР°РЅРёС…!\n' +
+        'рџ“ќ РўРІРѕСЏ С–РЅС„РѕСЂРјР°С†С–СЏ РїРѕС‚СЂС–Р±РЅР° Р»РёС€Рµ РґР»СЏ РЅР°С€РѕС— СЃРїС–Р»СЊРЅРѕС— СЂРѕР±РѕС‚Рё.\n' +
+        '_РќР°С‚РёСЃРЅРё "РџСЂРѕРґРѕРІР¶РёС‚Рё", С‰РѕР± РїРѕС‡Р°С‚Рё._',
+        [['вњ… РџСЂРѕРґРѕРІР¶РёС‚Рё']], 'Markdown');
       console.log(`Sent welcome message to ${chatId}`);
       return res.json({ status: 'ok', message: 'Welcome sent' });
     }
 
-    if (state.step === 0 && userText === 'Продовжити') {
-      console.log(`User clicked "Продовжити" on ${chatId}, moving to step 1`);
+    if (state.step === 0 && userText === 'РџСЂРѕРґРѕРІР¶РёС‚Рё') {
+      console.log(`User clicked "РџСЂРѕРґРѕРІР¶РёС‚Рё" on ${chatId}, moving to step 1`);
       state.step = 1;
-      sendMessage(chatId, '?? *1??/16: Як тебе звати?* _Введи ім’я та прізвище._', 'Markdown');
+      sendMessage(chatId, 'рџ‘¤ *1пёЏвѓЈ/16: РЇРє С‚РµР±Рµ Р·РІР°С‚Рё?* _Р’РІРµРґРё С–РјвЂ™СЏ С‚Р° РїСЂС–Р·РІРёС‰Рµ._', 'Markdown');
       console.log(`Sent step 1 message to ${chatId}`);
       return res.json({ status: 'ok' });
     }
@@ -97,7 +97,7 @@ function sendMessageWithButtons(chatId, text, buttons, parseMode = 'Markdown') {
     text,
     parse_mode: parseMode,
     reply_markup: {
-      keyboard: buttons.map(button => ({ text: button[0] })), // Перетворюємо масив масивів у масив об’єктів
+      keyboard: buttons.map(button => ({ text: button[0] })), // РџРµСЂРµС‚РІРѕСЂСЋС”РјРѕ РјР°СЃРёРІ РјР°СЃРёРІС–РІ Сѓ РјР°СЃРёРІ РѕР±вЂ™С”РєС‚С–РІ
       one_time_keyboard: true,
       resize_keyboard: true,
     },
