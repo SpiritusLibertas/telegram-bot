@@ -68,7 +68,7 @@ app.post('/', async (req, res) => {
     if (state.step === 0 && (userText === '✅ Продовжити' || userText === 'Продовжити')) {
       console.log(`User clicked "Продовжити" on ${chatId}, moving to step 1`);
       state.step = 1;
-      sendMessage(chatId, '👤 *1️⃣/16: Як тебе звати?* _Введи ім'я та прізвище._', 'Markdown');
+      sendMessage(chatId, '👤 *1️⃣/16: Як тебе звати?* _Введи імʼя та прізвище._', 'Markdown');
       console.log(`Sent step 1 message to ${chatId}`);
       return res.json({ status: 'ok' });
     }
