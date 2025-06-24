@@ -55,9 +55,9 @@ app.post('/', async (req, res) => {
       state.messageIds = [];
       sendMessageWithButtons(chatId,
         '🎉 *Вітаємо в боті LRconverter!*\n' +
-        '👤 Цей бот допомагає мені зібрати інформацію від тих, з ким я співпрацюю.\n' +
-        '🔒 *Запевняю:* запитання безпечні та не витягують конфіденційних даних!\n' +
-        '📝 Твоя інформація потрібна лише для нашої спільної роботи.\n' +
+        '👤 Цей бот збереже важливу інформацію для зручної та ефективної співпраці.\n' +
+        '🔒 Не хвилюйся — усі запитання безпечні й не стосуються конфіденційних даних.\n' +
+        '📝 Отримані відповіді потрібні лише для того, щоб краще організувати нашу взаємодію.\n' +
         '_Натисни "Продовжити", щоб почати._',
         [['✅ Продовжити']], 'Markdown');
       console.log(`Sent welcome message to ${chatId}`);
@@ -70,6 +70,104 @@ app.post('/', async (req, res) => {
       sendMessage(chatId, '👤 *1️⃣/16: Як тебе звати?* _Введи ім’я та прізвище._', 'Markdown');
       console.log(`Sent step 1 message to ${chatId}`);
       return res.json({ status: 'ok' });
+    }
+
+    switch (state.step) {
+      case 1:
+        state.responses.name = userText;
+        state.step = 2;
+        sendMessage(chatId, '🎂 *2️⃣/16: Скільки тобі років?* _Введи число._', 'Markdown');
+        console.log(`Moved to step 2 for ${chatId}`);
+        break;
+      case 2:
+        state.responses.age = userText;
+        state.step = 3;
+        sendMessage(chatId, '📧 *3️⃣/16: Який у тебе email?* _Введи адресу._', 'Markdown');
+        console.log(`Moved to step 3 for ${chatId}`);
+        break;
+      case 3:
+        state.responses.email = userText;
+        state.step = 4;
+        sendMessage(chatId, '📞 *4️⃣/16: Який у тебе номер телефону?* _Введи в форматі +380XXXXXXXXX._', 'Markdown');
+        console.log(`Moved to step 4 for ${chatId}`);
+        break;
+      case 4:
+        state.responses.phone = userText;
+        state.step = 5;
+        sendMessage(chatId, '🏠 *5️⃣/16: Де ти живеш?* _Введи місто або регіон._', 'Markdown');
+        console.log(`Moved to step 5 for ${chatId}`);
+        break;
+      case 5:
+        state.responses.location = userText;
+        state.step = 6;
+        sendMessage(chatId, '💼 *6️⃣/16: Якою є твоя основна професія?* _Введи назву._', 'Markdown');
+        console.log(`Moved to step 6 for ${chatId}`);
+        break;
+      case 6:
+        state.responses.profession = userText;
+        state.step = 7;
+        sendMessage(chatId, '⏰ *7️⃣/16: Скільки годин на тиждень ти можеш працювати?* _Введи число._', 'Markdown');
+        console.log(`Moved to step 7 for ${chatId}`);
+        break;
+      case 7:
+        state.responses.workHours = userText;
+        state.step = 8;
+        sendMessage(chatId, '💰 *8️⃣/16: Який твій бажаний рівень доходу?* _Введи суму в грн._', 'Markdown');
+        console.log(`Moved to step 8 for ${chatId}`);
+        break;
+      case 8:
+        state.responses.income = userText;
+        state.step = 9;
+        sendMessage(chatId, '🌐 *9️⃣/16: Чи маєш ти досвід роботи онлайн?* _Так/Ні._', 'Markdown');
+        console.log(`Moved to step 9 for ${chatId}`);
+        break;
+      case 9:
+        state.responses.onlineExp = userText;
+        state.step = 10;
+        sendMessage(chatId, '💻 *🔟/16: Які інструменти чи програми ти використовуєш?* _Введи список._', 'Markdown');
+        console.log(`Moved to step 10 for ${chatId}`);
+        break;
+      case 10:
+        state.responses.tools = userText;
+        state.step = 11;
+        sendMessage(chatId, '🎯 *1️⃣1️⃣/16: Які твої сильні сторони?* _Введи 2-3 пункти._', 'Markdown');
+        console.log(`Moved to step 11 for ${chatId}`);
+        break;
+      case 11:
+        state.responses.strengths = userText;
+        state.step = 12;
+        sendMessage(chatId, '❓ *1️⃣2️⃣/16: Чи є у тебе досвід роботи в команді?* _Так/Ні, опиши._', 'Markdown');
+        console.log(`Moved to step 12 for ${chatId}`);
+        break;
+      case 12:
+        state.responses.teamExp = userText;
+        state.step = 13;
+        sendMessage(chatId, '📅 *1️⃣3️⃣/16: Який твій графік доступності?* _Введи дні чи години._', 'Markdown');
+        console.log(`Moved to step 13 for ${chatId}`);
+        break;
+      case 13:
+        state.responses.schedule = userText;
+        state.step = 14;
+        sendMessage(chatId, '🌟 *1️⃣4️⃣/16: Чи є у тебе портфоліо чи приклади робіт?* _Так/Ні, додай посилання._', 'Markdown');
+        console.log(`Moved to step 14 for ${chatId}`);
+        break;
+      case 14:
+        state.responses.portfolio = userText;
+        state.step = 15;
+        sendMessage(chatId, '🤝 *1️⃣5️⃣/16: Чи згоден ти з умовами співпраці?* _Так/Ні._', 'Markdown');
+        console.log(`Moved to step 15 for ${chatId}`);
+        break;
+      case 15:
+        state.responses.agreement = userText;
+        state.step = 16;
+        sendMessage(chatId, '✅ *1️⃣6️⃣/16: Дякую! Дані відправлено. Очікуй на зворотний зв’язок.*', 'Markdown');
+        console.log(`Moved to step 16 for ${chatId}`);
+        // Додай логіку збереження в Google Sheets тут, якщо потрібно
+        break;
+    }
+
+    if (state.step > 0 && state.step < 15) {
+      if (messageId > 0) state.messageIds.push(messageId);
     }
 
     return res.json({ status: 'ok' });
@@ -97,7 +195,7 @@ function sendMessageWithButtons(chatId, text, buttons, parseMode = 'Markdown') {
     text,
     parse_mode: parseMode,
     reply_markup: {
-      keyboard: buttons, // Використовуємо buttons як є, оскільки це вже має бути масив масивів
+      keyboard: buttons,
       one_time_keyboard: true,
       resize_keyboard: true,
     },
