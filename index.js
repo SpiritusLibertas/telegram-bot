@@ -14,6 +14,8 @@ app.use(bodyParser.json());
 
 const CLIENT_EMAIL = process.env.CLIENT_EMAIL || '';
 const PRIVATE_KEY = process.env.PRIVATE_KEY || '';
+console.log('CLIENT_EMAIL:', CLIENT_EMAIL);
+console.log('PRIVATE_KEY length:', PRIVATE_KEY.length);
 const auth = new google.auth.GoogleAuth({
   credentials: { 
     client_email: CLIENT_EMAIL, 
