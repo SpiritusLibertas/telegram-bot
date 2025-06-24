@@ -14,8 +14,6 @@ app.use(bodyParser.json());
 
 const CLIENT_EMAIL = process.env.CLIENT_EMAIL || '';
 const PRIVATE_KEY = process.env.PRIVATE_KEY || '';
-console.log('CLIENT_EMAIL:', CLIENT_EMAIL);
-console.log('PRIVATE_KEY length:', PRIVATE_KEY.length);
 const auth = new google.auth.GoogleAuth({
   credentials: { 
     client_email: CLIENT_EMAIL, 
@@ -80,10 +78,10 @@ app.post('/', async (req, res) => {
     }
 
     // Обробка кнопки "Продовжити"
-    if (state.step === 0 && (userText === '✅ Продовжити' || userText === 'Продовжити')) {
+    if (state.step === 0 && userText === '✅ Продовжити') {
       console.log(`User clicked "Продовжити" on ${chatId}, moving to step 1`);
       state.step = 1;
-      sendMessage(chatId, '👤 1️⃣/16: Як тебе звати? Введи імя та прізвище.', 'Markdown');
+      sendMessage(chatId, '👤 1️⃣/16: Як тебе звати? Введи ім’я та прізвище.', 'Markdown');
       console.log(`Sent step 1 message to ${chatId}`);
       return res.json({ status: 'ok' });
     }
@@ -100,102 +98,105 @@ app.post('/', async (req, res) => {
       case 2:
         state.responses.age = userText;
         state.step = 3;
-        sendMessage(chatId, '📧 3️⃣/16: Який у тебе email? Введи адресу.', 'Markdown');
+        sendMessage(chatId, '🏠 3️⃣/16: У якому місті / країні живеш? Наприклад, Київ, Україна.', 'Markdown');
         console.log(`Moved to step 3 for ${chatId}`);
         break;
         
       case 3:
-        state.responses.email = userText;
+        state.responses.location = userText;
         state.step = 4;
-        sendMessage(chatId, '📞 4️⃣/16: Який у тебе номер телефону? Введи в форматі +380XXXXXXXXX.', 'Markdown');
+        sendMessage(chatId, '💼 4️⃣/16: У якій сфері працюєш? Наприклад, IT, маркетинг.', 'Markdown');
         console.log(`Moved to step 4 for ${chatId}`);
         break;
         
       case 4:
-        state.responses.phone = userText;
+        state.responses.field = userText;
         state.step = 5;
-        sendMessage(chatId, '🏠 5️⃣/16: Де ти живеш? Введи місто або регіон.', 'Markdown');
+        sendMessageWithButtons(chatId, '🔗 5️⃣/16: Чи маєш акаунт LinkedIn старше за 1 рік?', [['Так'], ['Ні']], 'Markdown');
         console.log(`Moved to step 5 for ${chatId}`);
         break;
         
       case 5:
-        state.responses.location = userText;
+        state.responses.linkedinAge = userText;
         state.step = 6;
-        sendMessage(chatId, '💼 6️⃣/16: Якою є твоя основна професія? Введи назву.', 'Markdown');
+        sendMessageWithButtons(chatId, '📱 6️⃣/16: Чи прив’язаний акаунт до номера телефону?', [['Так'], ['Ні']], 'Markdown');
         console.log(`Moved to step 6 for ${chatId}`);
         break;
         
       case 6:
-        state.responses.profession = userText;
+        state.responses.phoneLinked = userText;
         state.step = 7;
-        sendMessage(chatId, '⏰ 7️⃣/16: Скільки годин на тиждень ти можеш працювати? Введи число.', 'Markdown');
+        sendMessageWithButtons(chatId, '🧑‍💼 7️⃣/16: Чи акаунт містить реальні дані (ім’я, фото, досвід)?', [['Так'], ['Ні']], 'Markdown');
         console.log(`Moved to step 7 for ${chatId}`);
         break;
         
       case 7:
-        state.responses.workHours = userText;
+        state.responses.realData = userText;
         state.step = 8;
-        sendMessage(chatId, '💰 8️⃣/16: Який твій бажаний рівень доходу? Введи суму в грн.', 'Markdown');
+        sendMessageWithButtons(chatId, '📸 8️⃣/16: Чи готовий пройти селфі-верифікацію при потребі?', [['Так'], ['Ні']], 'Markdown');
         console.log(`Moved to step 8 for ${chatId}`);
         break;
         
       case 8:
-        state.responses.income = userText;
+        state.responses.selfieVerify = userText;
         state.step = 9;
-        sendMessage(chatId, '🌐 9️⃣/16: Чи маєш ти досвід роботи онлайн? Так/Ні.', 'Markdown');
+        sendMessageWithButtons(chatId, '🪪 9️⃣/16: Чи маєш документ для підтвердження особи (паспорт або водійське)?', [['Так'], ['Ні']], 'Markdown');
         console.log(`Moved to step 9 for ${chatId}`);
         break;
         
       case 9:
-        state.responses.onlineExp = userText;
+        state.responses.idDoc = userText;
         state.step = 10;
-        sendMessage(chatId, '💻 🔟/16: Які інструменти чи програми ти використовуєш? Введи список.', 'Markdown');
+        sendMessageWithButtons(chatId, '⏳ 1️⃣0️⃣/16: Чи акаунт активний? Навіть рідко.', [['Так'], ['Ні']], 'Markdown');
         console.log(`Moved to step 10 for ${chatId}`);
         break;
         
       case 10:
-        state.responses.tools = userText;
+        state.responses.active = userText;
         state.step = 11;
-        sendMessage(chatId, '🎯 1️⃣1️⃣/16: Які твої сильні сторони? Введи 2-3 пункти.', 'Markdown');
+        sendMessageWithButtons(chatId, '⚠️ 1️⃣1️⃣/16: Чи були випадки блокування або підозри в LinkedIn?', [['Так'], ['Ні']], 'Markdown');
         console.log(`Moved to step 11 for ${chatId}`);
         break;
         
       case 11:
-        state.responses.strengths = userText;
+        state.responses.blocked = userText;
         state.step = 12;
-        sendMessage(chatId, '❓ 1️⃣2️⃣/16: Чи є у тебе досвід роботи в команді? Так/Ні, опиши.', 'Markdown');
+        sendMessageWithButtons(chatId, '📅 1️⃣2️⃣/16: На який термін готовий здати акаунт?', [['до 1 міс'], ['1–3 міс'], ['3+ міс'], ['постійно']], 'Markdown');
         console.log(`Moved to step 12 for ${chatId}`);
         break;
         
       case 12:
-        state.responses.teamExp = userText;
+        state.responses.duration = userText;
         state.step = 13;
-        sendMessage(chatId, '📅 1️⃣3️⃣/16: Який твій графік доступності? Введи дні чи години.', 'Markdown');
+        sendMessage(chatId, '⏱️ 1️⃣3️⃣/16: Як швидко зможеш надати доступ до акаунта? Наприклад, зараз, завтра.', 'Markdown');
         console.log(`Moved to step 13 for ${chatId}`);
         break;
         
       case 13:
-        state.responses.schedule = userText;
+        state.responses.accessSpeed = userText;
         state.step = 14;
-        sendMessage(chatId, '🌟 1️⃣4️⃣/16: Чи є у тебе портфоліо чи приклади робіт? Так/Ні, додай посилання.', 'Markdown');
+        sendMessageWithButtons(chatId, '➕ 1️⃣4️⃣/16: Чи маєш ще акаунти, які можна здати?', [['Так'], ['Ні']], 'Markdown');
         console.log(`Moved to step 14 for ${chatId}`);
         break;
         
       case 14:
-        state.responses.portfolio = userText;
+        state.responses.extraAccounts = userText;
         state.step = 15;
-        sendMessage(chatId, '🤝 1️⃣5️⃣/16: Чи згоден ти з умовами співпраці? Так/Ні.', 'Markdown');
+        sendMessage(chatId, '💬 1️⃣5️⃣/16: Додатковий коментар / питання? Можна пропустити.', 'Markdown');
         console.log(`Moved to step 15 for ${chatId}`);
         break;
         
       case 15:
-        state.responses.agreement = userText;
+        state.responses.comment = userText;
         state.step = 16;
         
         // Збереження в Google Sheets
         try {
           await saveToGoogleSheets(state.responses, chatId);
-          sendMessage(chatId, '✅ 1️⃣6️⃣/16: Дякую! Дані успішно збережено. Очікуй на зворотний звязок.', 'Markdown');
+          // Видалення всіх попередніх повідомлень
+          state.messageIds.forEach(msgId => sendDeleteMessage(chatId, msgId));
+          // Надсилання посилання на канал
+          sendMessage(chatId, `✅ 1️⃣6️⃣/16: Дякую! Дані успішно збережено. Приєднуйся до каналу: ${CHANNEL_URL}`, 'Markdown');
         } catch (sheetError) {
           console.error('Error saving to Google Sheets:', sheetError);
           sendMessage(chatId, '✅ 1️⃣6️⃣/16: Дякую! Дані отримано, але виникла помилка при збереженні. Звяжемося з тобою найближчим часом.', 'Markdown');
@@ -227,25 +228,25 @@ async function saveToGoogleSheets(responses, chatId) {
         chatId,
         responses.name || '',
         responses.age || '',
-        responses.email || '',
-        responses.phone || '',
         responses.location || '',
-        responses.profession || '',
-        responses.workHours || '',
-        responses.income || '',
-        responses.onlineExp || '',
-        responses.tools || '',
-        responses.strengths || '',
-        responses.teamExp || '',
-        responses.schedule || '',
-        responses.portfolio || '',
-        responses.agreement || ''
+        responses.field || '',
+        responses.linkedinAge || '',
+        responses.phoneLinked || '',
+        responses.realData || '',
+        responses.selfieVerify || '',
+        responses.idDoc || '',
+        responses.active || '',
+        responses.blocked || '',
+        responses.duration || '',
+        responses.accessSpeed || '',
+        responses.extraAccounts || '',
+        responses.comment || ''
       ]
     ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID,
-      range: `${SHEET_NAME}!A:Q`,
+      range: `${SHEET_NAME}!A:R`,
       valueInputOption: 'RAW',
       requestBody: { values }
     });
