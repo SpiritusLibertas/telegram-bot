@@ -97,7 +97,7 @@ function sendMessageWithButtons(chatId, text, buttons, parseMode = 'Markdown') {
     text,
     parse_mode: parseMode,
     reply_markup: {
-      keyboard: buttons.map(button => ({ text: button[0] })), // Перетворюємо масив масивів у масив об’єктів
+      keyboard: buttons, // Використовуємо buttons як є, оскільки це вже має бути масив масивів
       one_time_keyboard: true,
       resize_keyboard: true,
     },
