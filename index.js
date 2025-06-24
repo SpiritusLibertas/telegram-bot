@@ -40,8 +40,10 @@ app.post('/', async (req, res) => {
     const chatId = message.chat?.id;
     const userText = message.text || '';
     const messageId = message.message_id || 0;
+    const username = message.from?.username || '';
+    const telegramName = `${message.from?.first_name || ''} ${message.from?.last_name || ''}`.trim();
 
-    console.log(`Processing - Chat ID: ${chatId}, Text: ${userText}, Message ID: ${messageId}`);
+    console.log(`Processing - Chat ID: ${chatId}, Text: ${userText}, Message ID: ${messageId}, Username: @${username}`);
 
     if (!chatId) {
       console.log('Chat ID is undefined');
@@ -57,13 +59,20 @@ app.post('/', async (req, res) => {
     }
     const state = chatStates[chatId];
 
+    // Додаємо юзернейм та ім'я з Telegram до відповідей
+    state.responses.telegramUsername = username;
+    state.responses.telegramName = telegramName;
+
     console.log(`Checking step: ${state.step}, userText: "${userText}"`);
     
     // Обробка команди /start
     if (state.step === 0 && userText === '/start') {
       console.log(`Step 0 triggered for ${chatId} with /start`);
       state.step = 0;
-      state.responses = {};
+      state.responses = {
+        telegramUsername: username,
+        telegramName: telegramName
+      };
       state.messageIds = [];
       
       const welcomeText = '🎉 Вітаємо в боті LRconverter!\n' +
@@ -81,9 +90,14 @@ app.post('/', async (req, res) => {
     if (state.step === 0 && userText === '✅ Продовжити') {
       console.log(`User clicked "Продовжити" on ${chatId}, moving to step 1`);
       state.step = 1;
-      sendMessage(chatId, '👤 1️⃣/16: Як тебе звати? Введи ім’я та прізвище.', 'Markdown');
+      sendMessage(chatId, '👤 1️⃣/16: Як тебе звати? Введи ім'я та прізвище.', 'Markdown');
       console.log(`Sent step 1 message to ${chatId}`);
       return res.json({ status: 'ok' });
+    }
+
+    // Зберігаємо ID всіх повідомлень для подальшого видалення
+    if (messageId > 0 && state.step > 0) {
+      state.messageIds.push(messageId);
     }
 
     // Обробка кроків опитування
@@ -110,23 +124,23 @@ app.post('/', async (req, res) => {
         break;
         
       case 4:
-        state.responses.field = userText;
+        state.responses.profession = userText;
         state.step = 5;
         sendMessageWithButtons(chatId, '🔗 5️⃣/16: Чи маєш акаунт LinkedIn старше за 1 рік?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 5 for ${chatId}`);
         break;
         
       case 5:
-        state.responses.linkedinAge = userText;
+        state.responses.accountAge = userText;
         state.step = 6;
-        sendMessageWithButtons(chatId, '📱 6️⃣/16: Чи прив’язаний акаунт до номера телефону?', [['✅ Так'], ['❌ Ні']], 'Markdown');
+        sendMessageWithButtons(chatId, '📱 6️⃣/16: Чи прив'язаний акаунт до номера телефону?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 6 for ${chatId}`);
         break;
         
       case 6:
         state.responses.phoneLinked = userText;
         state.step = 7;
-        sendMessageWithButtons(chatId, '🧑‍💼 7️⃣/16: Чи акаунт містить реальні дані (ім’я, фото, досвід)?', [['✅ Так'], ['❌ Ні']], 'Markdown');
+        sendMessageWithButtons(chatId, '🧑‍💼 7️⃣/16: Чи акаунт містить реальні дані (ім'я, фото, досвід)?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 7 for ${chatId}`);
         break;
         
@@ -138,14 +152,14 @@ app.post('/', async (req, res) => {
         break;
         
       case 8:
-        state.responses.selfieVerify = userText;
+        state.responses.selfieReady = userText;
         state.step = 9;
         sendMessageWithButtons(chatId, '🪪 9️⃣/16: Чи маєш документ для підтвердження особи (паспорт або водійське)?', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 9 for ${chatId}`);
         break;
         
       case 9:
-        state.responses.idDoc = userText;
+        state.responses.document = userText;
         state.step = 10;
         sendMessageWithButtons(chatId, '⏳ 1️⃣0️⃣/16: Чи акаунт активний? Навіть рідко.', [['✅ Так'], ['❌ Ні']], 'Markdown');
         console.log(`Moved to step 10 for ${chatId}`);
@@ -159,7 +173,7 @@ app.post('/', async (req, res) => {
         break;
         
       case 11:
-        state.responses.blocked = userText;
+        state.responses.blockHistory = userText;
         state.step = 12;
         sendMessageWithButtons(chatId, '📅 1️⃣2️⃣/16: На який термін готовий здати акаунт?', [['до 1 міс'], ['1–3 міс'], ['3+ міс'], ['постійно']], 'Markdown');
         console.log(`Moved to step 12 for ${chatId}`);
@@ -193,23 +207,30 @@ app.post('/', async (req, res) => {
         // Збереження в Google Sheets
         try {
           await saveToGoogleSheets(state.responses, chatId);
+          
           // Видалення всіх попередніх повідомлень
-          state.messageIds.forEach(msgId => sendDeleteMessage(chatId, msgId));
-          // Надсилання посилання на канал з видаленням клавіатури
-          sendMessage(chatId, `✅ 1️⃣6️⃣/16: Дякую! Дані успішно збережено. Приєднуйся до каналу: [тут](${CHANNEL_URL})`, 'Markdown', { remove_keyboard: true });
+          for (const msgId of state.messageIds) {
+            await sendDeleteMessage(chatId, msgId);
+            // Невелика затримка між видаленнями
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          
+          // Видалення останнього повідомлення користувача
+          await sendDeleteMessage(chatId, messageId);
+          
+          // Надсилання фінального повідомлення з видаленням клавіатури
+          const finalMessage = `✅ 1️⃣6️⃣/16: Дякую! Дані успішно збережено. Приєднуйся до каналу: [тут](${CHANNEL_URL})`;
+          sendMessage(chatId, finalMessage, 'Markdown', { remove_keyboard: true });
+          
+          console.log(`Completed survey and cleared chat history for ${chatId}`);
         } catch (sheetError) {
           console.error('Error saving to Google Sheets:', sheetError);
           sendMessage(chatId, '✅ 1️⃣6️⃣/16: Дякую! Дані отримано, але виникла помилка при збереженні. Звяжемося з тобою найближчим часом.', 'Markdown', { remove_keyboard: true });
         }
         
-        console.log(`Completed survey for ${chatId}`);
         // Очищаємо стан після завершення
         delete chatStates[chatId];
         break;
-    }
-
-    if (state.step > 0 && state.step < 15) {
-      if (messageId > 0) state.messageIds.push(messageId);
     }
 
     return res.json({ status: 'ok' });
@@ -219,34 +240,34 @@ app.post('/', async (req, res) => {
   }
 });
 
-// Функція для збереження в Google Sheets
+// Функція для збереження в Google Sheets з правильним порядком колонок
 async function saveToGoogleSheets(responses, chatId) {
   try {
     const values = [
       [
-        new Date().toISOString(),
-        chatId,
-        responses.name || '',
-        responses.age || '',
-        responses.location || '',
-        responses.field || '',
-        responses.linkedinAge || '',
-        responses.phoneLinked || '',
-        responses.realData || '',
-        responses.selfieVerify || '',
-        responses.idDoc || '',
-        responses.active || '',
-        responses.blocked || '',
-        responses.duration || '',
-        responses.accessSpeed || '',
-        responses.extraAccounts || '',
-        responses.comment || ''
+        new Date().toISOString(), // A - Timestamp
+        responses.name || '', // B - Ім'я
+        responses.age || '', // C - Вік
+        responses.location || '', // D - Місто
+        responses.telegramUsername ? `@${responses.telegramUsername}` : '', // E - Telegram
+        responses.profession || '', // F - Професія
+        responses.accountAge || '', // G - Стаж акаунту
+        responses.phoneLinked || '', // H - Прив'язка до номера
+        responses.realData || '', // I - Реальні дані
+        responses.selfieReady || '', // J - Готовність до селфі
+        responses.document || '', // K - Документ
+        responses.active || '', // L - Активність
+        responses.blockHistory || '', // M - Історія блокувань
+        responses.duration || '', // N - Термін
+        responses.accessSpeed || '', // O - Готовність здати
+        responses.extraAccounts || '', // P - Інші акаунти
+        responses.comment || '' // Q - Коментар
       ]
     ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID,
-      range: `${SHEET_NAME}!A:R`,
+      range: `${SHEET_NAME}!A:Q`,
       valueInputOption: 'RAW',
       requestBody: { values }
     });
@@ -309,18 +330,29 @@ function sendMessageWithButtons(chatId, text, buttons, parseMode = 'Markdown') {
 }
 
 function sendDeleteMessage(chatId, messageId) {
-  console.log(`Deleting message ${messageId} from ${chatId}`);
-  const url = `https://api.telegram.org/bot${TOKEN}/deleteMessage`;
-  
-  const req = https.request(url, { 
-    method: 'POST', 
-    headers: { 'Content-Type': 'application/json' } 
-  }, (res) => {
-    res.on('data', () => {});
+  return new Promise((resolve, reject) => {
+    console.log(`Deleting message ${messageId} from ${chatId}`);
+    const url = `https://api.telegram.org/bot${TOKEN}/deleteMessage`;
+    
+    const req = https.request(url, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' } 
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        console.log(`Delete response: ${data}`);
+        resolve(data);
+      });
+    });
+    
+    req.on('error', (err) => {
+      console.error(`Delete message error: ${err.message}`);
+      reject(err);
+    });
+    
+    req.end(JSON.stringify({ chat_id: chatId, message_id: messageId }));
   });
-  
-  req.on('error', (err) => console.error(`Delete message error: ${err.message}`));
-  req.end(JSON.stringify({ chat_id: chatId, message_id: messageId }));
 }
 
 const PORT = process.env.PORT || 10000;
