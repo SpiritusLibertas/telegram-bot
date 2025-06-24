@@ -195,11 +195,11 @@ app.post('/', async (req, res) => {
           await saveToGoogleSheets(state.responses, chatId);
           // Видалення всіх попередніх повідомлень
           state.messageIds.forEach(msgId => sendDeleteMessage(chatId, msgId));
-          // Надсилання посилання на канал
-          sendMessage(chatId, `✅ 1️⃣6️⃣/16: Дякую! Дані успішно збережено. Приєднуйся до каналу: [тут](${CHANNEL_URL})`, 'Markdown');
+          // Надсилання посилання на канал з видаленням клавіатури
+          sendMessage(chatId, `✅ 1️⃣6️⃣/16: Дякую! Дані успішно збережено. Приєднуйся до каналу: [тут](${CHANNEL_URL})`, 'Markdown', { remove_keyboard: true });
         } catch (sheetError) {
           console.error('Error saving to Google Sheets:', sheetError);
-          sendMessage(chatId, '✅ 1️⃣6️⃣/16: Дякую! Дані отримано, але виникла помилка при збереженні. Звяжемося з тобою найближчим часом.', 'Markdown');
+          sendMessage(chatId, '✅ 1️⃣6️⃣/16: Дякую! Дані отримано, але виникла помилка при збереженні. Звяжемося з тобою найближчим часом.', 'Markdown', { remove_keyboard: true });
         }
         
         console.log(`Completed survey for ${chatId}`);
@@ -258,13 +258,14 @@ async function saveToGoogleSheets(responses, chatId) {
   }
 }
 
-function sendMessage(chatId, text, parseMode = 'Markdown') {
+function sendMessage(chatId, text, parseMode = 'Markdown', replyMarkup = {}) {
   console.log(`Sending message to ${chatId}: ${text}`);
   const url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;
   const payload = { 
     chat_id: chatId, 
     text, 
-    parse_mode: parseMode 
+    parse_mode: parseMode,
+    reply_markup: replyMarkup
   };
   
   const req = https.request(url, { 
